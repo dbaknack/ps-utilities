@@ -1,4 +1,23 @@
 function MergeContext{
+        <#
+    .SYNOPSIS
+        Returns planets that match the given name.
+
+    .DESCRIPTION
+        This function returns a list of solar system planets. You can filter them by name using wildcards.
+
+    .PARAMETER Name
+        The name of the planet(s) to retrieve. Supports wildcards.
+
+    .EXAMPLE
+        Get-Planet -Name "M*"
+
+    .EXAMPLE
+        Get-Planet
+
+    .NOTES
+        Author: Your Name
+    #>
     param(
         [hashtable]$Target,
         [hashtable]$Defaults
@@ -108,8 +127,6 @@ function ConvertfromJsonToHashtable{
 function Invoke-UDFSQLCommand{
     param([hashtable]$fromSender)
     
-
-
     # databasename is not required, but if not supplied, master will be default
     if(-not($fromSender.ContainsKey('DatabaseName'))){
         $fromSender += @{DatabaseName = 'Master'}
