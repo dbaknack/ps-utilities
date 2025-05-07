@@ -1,6 +1,5 @@
 import-module .\ps-modules\ps-utilities
 
-[MyClass]::new()
 # ----------------------------------------------------------------------------------
 # ex.   defining your parameters first
 # note: useful when passing into a function
