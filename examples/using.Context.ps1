@@ -1,7 +1,7 @@
 import-module .\ps-utilities
 
 # ----------------------------------------------------------------------------------
-# ex.   defining your parameters first
+# ex.   defining your parameters first #
 # note: useful when passing into a function
 $fromSender = @{
     NonDefaultParam1 = "NonDefaultParam1"
