@@ -105,3 +105,60 @@ function ConvertfromJsonToHashtable{
 
     return ConvertObjectJsontoHashtable $jsonObj
 }
+function Invoke-UDFSQLCommand{
+    param([hashtable]$fromSender)
+    
+
+
+    # databasename is not required, but if not supplied, master will be default
+    if(-not($fromSender.ContainsKey('DatabaseName'))){
+        $fromSender += @{DatabaseName = 'Master'}
+    }
+
+    # processname is not required, but if not supplied, default will be used
+    if(-not($fromSender.ContainsKey('ProcessName'))){
+        $fromSender += @{ProcessName = 'Invoke-UDFSQLCommand2'}
+    }
+
+    # if testconnection is supplied a test connection will be made
+    if($fromSender.ContainsKey('TestConnection')){
+        $fromSender = @{TestConnection = $true}
+        
+    }else{
+        $fromSender += @{TestConnection = $false}
+    }
+    if($fromSender.TestConnection){
+        $fromSender += @{Query = "select Test = cast(1 as bit)"}
+    }
+
+    # will attempt to make the connection
+    try{
+        $processname            = $fromSender.ProcessName
+        $myQuery                = "{0}" -f $fromSender.Query
+        $sqlconnectionstring    = "
+            server                          = $($fromSender.InstanceName);
+            database                        = $($fromSender.DatabaseName);
+            trusted_connection              = true;
+            application name                = $processname;"
+        # sql connection, setup call
+        $sqlconnection                  = new-object system.data.sqlclient.sqlconnection
+        $sqlconnection.connectionstring = $sqlconnectionstring
+        $sqlconnection.open()
+    }catch{
+        return $Error[0]
+    }
+
+    $sqlcommand                     = new-object system.data.sqlclient.sqlcommand
+    $sqlcommand.connection          = $sqlconnection
+    $sqlcommand.commandtext         = $myQuery
+    # sql connection, handle returned results
+    $sqladapter                     = new-object system.data.sqlclient.sqldataadapter
+    $sqladapter.selectcommand       = $sqlcommand
+    $dataset                        = new-object system.data.dataset
+    $sqladapter.fill($dataset) | out-null
+    $resultsreturned                = $null
+    $resultsreturned               += $dataset.tables
+    $sqlconnection.close()
+    $sqlconnection.dispose()
+    return $resultsreturned.Rows
+}
