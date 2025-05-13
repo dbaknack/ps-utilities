@@ -1,0 +1,11 @@
+{
+	"function-boilerplate":{
+		"prefix":"function-boilerplate",
+		"body": [
+			"if(-not(${1})){",
+			"    ${2}",
+			"}",
+			"${0}"
+		]
+	}
+}
