@@ -2,7 +2,7 @@ import-module ./ps-utilities
 
 # note:     any value in the json that is null will be converted to an empty string
 $fromSender = @{
-    Path = "./test/test.json"
+    Path = ".\tests\test.json"
 }
 ConvertfromJsonToHashtable $fromSender
 
