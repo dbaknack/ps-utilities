@@ -163,3 +163,99 @@ function Invoke-UDFSQLCommand{
 function NewSessions{
 	throw "Not implemented yet"
 }
+
+class setUp {
+    [string]$Root = $HOME
+    [String]$For
+
+    setUp([hashtable]$fromSender){
+        $this.setUpRootDirectory($fromSender.For)
+        $this.setUpStoresDirectory()
+    }
+    [void] setUpRootDirectory([string]$FromSender){
+        $path = join-path $this.Root $FromSender
+        if(-not(test-path -path $path)){
+            new-item -path $path -itemtype "directory" | out-null
+        }
+        $this.For = $FromSender
+    }
+    [void] setUpStoresDirectory(){
+        $path = join-path $this.Root (join-path $this.For 'Stores')
+        if(-not(test-path -path $path)){
+            new-item -path $path -itemtype "directory" | out-null
+        }
+    }
+    [hashtable] GetStores(){
+        $path = join-path $this.Root (join-path $this.For 'Stores')
+        $stores = get-childitem -path $path
+        $storesTable = @{}
+        if($stores.count -ne 0){
+            foreach($item in $stores){
+                $storesTable += @{$item.BaseName = @{
+                    Path = $item.FullName
+                }}
+            }
+        }
+        return $storesTable
+    }
+    [void] NewStore([hashtable]$fromSender){
+        $stores = $fromSender.Stores
+        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
+
+        foreach($store in $stores){
+            $path = join-path $storesPath $store.Name
+            $path = $path
+            if(-not(Test-Path -path $path)){
+                new-item -path $path -itemType 'File' | out-null
+            }
+        }
+    }
+    [void] RemoveStore([hashtable]$fromSender){
+        $stores = $fromSender.Stores
+        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
+
+        foreach($store in $stores){
+            $path = join-path $storesPath $store.Name
+            $path = $path
+            if(Test-Path -path $path){
+                Remove-item -path $path | out-null
+            }
+        }
+    }
+    [void] InsertTo([hashtable]$fromSender){
+        $stores = $this.GetStores()
+        $storesList = $stores.keys
+        
+        $myStores = $fromSender.Stores
+
+        foreach($store in $myStores){
+            if($storesList -contains $store.Name){
+                $name = $store.Name
+                $path = $stores.$name.Path
+                $content = get-content -path $path
+                $object = $content | convertfrom-csv
+                
+                $csv = ($object + $store.Items) | convertto-csv
+                set-content -path $path -value $csv | out-null
+            }
+        }
+    }
+    [hashtable] GetFrom([hashtable]$fromSender){
+        $stores = $this.GetStores()
+        $storesList = $stores.keys
+        
+        $myStores = $fromSender.Stores
+
+        $dataTable = @{}
+        foreach($store in $myStores){
+            if($storesList -contains $store.Name){
+                $name = $store.Name
+                $path = $stores.$name.Path
+                $content = get-content -path $path
+                $object = $content | convertfrom-csv
+                $dataTable.Add("$name",$object)
+            }
+        }
+        return $dataTable
+    }
+}

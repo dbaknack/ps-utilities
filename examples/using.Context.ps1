@@ -12,6 +12,8 @@ $fromSender = @{
 # merge it with the defaults
 Context $fromSender
 
+$fromSender = Context $fromSender
+
 # updating the defaults
 $fromSender.Preferences.Messages.Enabled = $false
 $fromSender.Preferences.Messages.Enabled
