@@ -160,4 +160,6 @@ function Invoke-UDFSQLCommand{
     $sqlconnection.dispose()
     return $resultsreturned.Rows
 }
-function NewSessions{}
+function NewSessions{
+	throw "Not implemented yet"
+}
