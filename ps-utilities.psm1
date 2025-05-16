@@ -120,7 +120,7 @@ function Invoke-UDFSQLCommand{
 
     # if testconnection is supplied a test connection will be made
     if($fromSender.ContainsKey('TestConnection')){
-        $fromSender = @{TestConnection = $true}
+        $fromSender += @{TestConnection = $true}
         
     }else{
         $fromSender += @{TestConnection = $false}
