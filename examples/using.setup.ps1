@@ -1,6 +1,17 @@
 $utilities = [setUp]::new(@{For = 'ps-utilities'})
 
-$stores = $utilities.GetStores()
+# create some stores
+$utilities.NewStore(@{
+    Stores = @(
+        @{Name = 'Config'}
+       # @{Name = 'Test3'}
+    )
+})
+
+# list out the stores
+$script:utilities.GetStores()
+$script:utilities.RemoveStore(@{Store = @{Name = "Servers"}})
+# insert into stores
 $utilities.InsertTo(@{
     Stores = @(
         @{
@@ -20,16 +31,9 @@ $utilities.InsertTo(@{
     )
 })
 
-($utilities.GetFrom(@{Stores = @{Name = "Test3"}}))
-$utilities.NewStore(@{
-    Stores = @(
-        @{Name = 'Test'}
-        @{Name = 'Test3'}
-    )
-})
-$utilities.NewStore(@{
-    Stores = @(
-        @{Name = 'Test'}
-        @{Name = 'Test2'}
-    )
-})
+# select from stores
+$data = ($utilities.GetFrom(@{Stores = @{Name = "Test3"}}))
+$data."Test3"
+
+# remote a data store
+$utilities.RemoveStore((@{Stores = @{Name = "Servers"}}))

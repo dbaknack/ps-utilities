@@ -1,4 +1,4 @@
-import-module .\ps-utilities
+import-module ./ps-utilities
 
 # ----------------------------------------------------------------------------------
 # ex.   defining your parameters first #
@@ -31,3 +31,5 @@ $context.Preferences.Messages.Enabled
 remove-module -name ps-utilities
 
 Message
+
+(Context).Stores

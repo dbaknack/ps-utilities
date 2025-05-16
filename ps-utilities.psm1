@@ -1,3 +1,192 @@
+class setUp {
+    [string]$Root = $HOME
+    [String]$For
+
+    setUp([hashtable]$fromSender){
+        $this.setUpRootDirectory($fromSender.For)
+        $this.setUpStoresDirectory()
+    }
+    [void] setUpRootDirectory([string]$FromSender){
+        $path = join-path $this.Root $FromSender
+        if(-not(test-path -path $path)){
+            new-item -path $path -itemtype "directory" | out-null
+        }
+        $this.For = $FromSender
+    }
+    [void] setUpStoresDirectory(){
+        $path = join-path $this.Root (join-path $this.For 'Stores')
+        if(-not(test-path -path $path)){
+            new-item -path $path -itemtype "directory" | out-null
+        }
+    }
+    [hashtable] GetStores(){
+        $path = join-path $this.Root (join-path $this.For 'Stores')
+        $stores = get-childitem -path $path
+        $storesTable = @{}
+        if($stores.count -ne 0){
+            foreach($item in $stores){
+                $storesTable += @{$item.BaseName = @{
+                    Path = $item.FullName
+                }}
+            }
+        }
+        return $storesTable
+    }
+    [void] NewStore([hashtable]$fromSender){
+        $stores = $fromSender.Stores
+        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
+
+        foreach($store in $stores){
+            $path = join-path $storesPath $store.Name
+            $path = $path
+            if(-not(Test-Path -path $path)){
+                new-item -path $path -itemType 'File' | out-null
+            }
+        }
+    }
+    [void] RemoveStore([hashtable]$fromSender){
+        $stores = $fromSender.Stores
+        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
+
+        foreach($store in $stores){
+            $path = join-path $storesPath $store.Name
+            $path = $path
+            if(Test-Path -path $path){
+                Remove-item -path $path | out-null
+            }
+        }
+    }
+    [void] InsertTo([hashtable]$fromSender){
+        $stores = $this.GetStores()
+        $storesList = $stores.keys
+        
+        $myStores = $fromSender.Stores
+
+        foreach($store in $myStores){
+            if($storesList -contains $store.Name){
+                $name = $store.Name
+                $path = $stores.$name.Path
+                $content = get-content -path $path
+                $object = $content | convertfrom-csv
+                
+                $csv = ($object + $store.Items) | convertto-csv
+                set-content -path $path -value $csv | out-null
+            }
+        }
+    }
+    [hashtable] GetFrom([hashtable]$fromSender){
+        $stores = $this.GetStores()
+        $storesList = $stores.keys
+        
+        $myStores = $fromSender.Stores
+
+        $dataTable = @{}
+        foreach($store in $myStores){
+            if($storesList -contains $store.Name){
+                $name = $store.Name
+                $path = $stores.$name.Path
+                $content = get-content -path $path
+                $object = $content | convertfrom-csv
+                $dataTable.Add("$name",$object)
+            }
+        }
+        return $dataTable
+    }
+}
+$script:utilities = [setUp]::new(@{For = 'ps-utilities'})
+
+function GetServers{
+    $store = "Servers"
+    ($utilities.GetFrom(@{Stores = @{Name = $store}})).$store
+}
+function RemoveServer{
+    param([hashtable]$fromSender)
+
+    $where = $fromSender.where
+    $property = $fromSender.Property
+    $operator = $fromSender.operator
+
+    $store = "Servers"
+    $data = @(($utilities.GetFrom(@{Stores = @{Name = $store}})).$store)
+    $path = (Context).Stores.$store.Path
+
+    if($data.count -ne 0){
+        $new =  switch($operator){
+            '-like' {$data | where-object {$_.$where -notlike $property}}
+            '-eq'{$data | where-object {$_.$where -ne $property}}
+            '-notlike'{$data | where-object {$_.$where -like $property}}
+            '-ne'{$data | where-object {$_.$where -eq $property}}
+        }
+    }else{
+        $new = $data
+    }
+    
+    $csv = $new | convertto-csv
+    set-content -path $path  -value $csv | out-null
+}
+function StashServer{
+    param([hashtable]$fromSender)
+ 
+    # create the store if it does not exist
+    $store = "Servers"
+    $script:utilities.NewStore(@{
+        Stores = @(@{Name = $store})
+    })
+    $path = (Context).Stores.$store.Path
+    # get the data from the store
+    $data = @(($utilities.GetFrom(@{Stores = @{Name = $store}})).$store)
+    $servers = $fromSender.Servers
+
+    $entry = @()
+    foreach($server in $servers){
+        $entryValid = $true
+        $duplicateExists = $true
+        $missing = @()
+        if(-not($server.ContainsKey('DomainName'))){
+            $entryValid = $false
+            $missing += "DomainName"
+        }
+        $domainName = $server.DomainName
+
+        if(-not($server.ContainsKey('Name'))){
+            $entryValid = $false
+            $missing += "Name"
+        }
+        $name = $server.Name
+
+        if(-not($server.ContainsKey('IP'))){
+            $entryValid = $false
+            $missing += "IP"
+        }
+        $ip = $server.IP
+
+        if($entryValid){
+            if($data.count -eq 0){
+                $duplicateExists = $false
+            }else{
+                if($null -eq ($data | where-object {$_.DomainName -eq $domainName -and $_.Name -eq $name -and $_.IP -eq $ip})){
+                    $duplicateExists = $false
+                }
+            }
+
+            if($duplicateExists -eq $false){
+                $entry += $server
+            }else{
+                write-warning ("There is already an entry with DomainName: '{0}', Name: '{1}', IP: '{2}'" -f $domainName,$name,$ip)
+            }
+        }else{
+            $missingList = ($missing -join "`n")
+            write-warning ("missing parameters: {0}" -f $missingList)
+        }
+    }
+
+    foreach($new in $entry){
+        $data += $new
+    }
+    $insert = $data | select-object DomainName,Name,IP,@{Name = "GUID";Expression = {(New-Guid).guid}}
+    $csv = $insert | convertto-csv
+    set-content -path $path -value $csv | out-null
+}
 function MergeContext{
     param(
         [hashtable]$Target,
@@ -19,6 +208,13 @@ function MergeContext{
 function Context{
     param([hashtable]$fromSender)
 
+    # create 
+    $script:utilities.NewStore(@{
+        Stores = @(
+            @{Name = 'Config'}
+        )
+    })
+    
     if(-not $fromSender){$fromSender = @{}}
     $defaults = @{
         Preferences = @{
@@ -34,6 +230,7 @@ function Context{
                 Internal        = @{ Enabled = $false;  Color = "Magenta"   }
             }
         }
+        Stores = $script:utilities.GetStores()
         Message = @{
             Type        = "Informational"
             UserName    = [System.Environment]::UserName
@@ -164,98 +361,3 @@ function NewSessions{
 	throw "Not implemented yet"
 }
 
-class setUp {
-    [string]$Root = $HOME
-    [String]$For
-
-    setUp([hashtable]$fromSender){
-        $this.setUpRootDirectory($fromSender.For)
-        $this.setUpStoresDirectory()
-    }
-    [void] setUpRootDirectory([string]$FromSender){
-        $path = join-path $this.Root $FromSender
-        if(-not(test-path -path $path)){
-            new-item -path $path -itemtype "directory" | out-null
-        }
-        $this.For = $FromSender
-    }
-    [void] setUpStoresDirectory(){
-        $path = join-path $this.Root (join-path $this.For 'Stores')
-        if(-not(test-path -path $path)){
-            new-item -path $path -itemtype "directory" | out-null
-        }
-    }
-    [hashtable] GetStores(){
-        $path = join-path $this.Root (join-path $this.For 'Stores')
-        $stores = get-childitem -path $path
-        $storesTable = @{}
-        if($stores.count -ne 0){
-            foreach($item in $stores){
-                $storesTable += @{$item.BaseName = @{
-                    Path = $item.FullName
-                }}
-            }
-        }
-        return $storesTable
-    }
-    [void] NewStore([hashtable]$fromSender){
-        $stores = $fromSender.Stores
-        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
-
-        foreach($store in $stores){
-            $path = join-path $storesPath $store.Name
-            $path = $path
-            if(-not(Test-Path -path $path)){
-                new-item -path $path -itemType 'File' | out-null
-            }
-        }
-    }
-    [void] RemoveStore([hashtable]$fromSender){
-        $stores = $fromSender.Stores
-        $storesPath = join-path $this.Root (join-path $this.For 'Stores')
-
-        foreach($store in $stores){
-            $path = join-path $storesPath $store.Name
-            $path = $path
-            if(Test-Path -path $path){
-                Remove-item -path $path | out-null
-            }
-        }
-    }
-    [void] InsertTo([hashtable]$fromSender){
-        $stores = $this.GetStores()
-        $storesList = $stores.keys
-        
-        $myStores = $fromSender.Stores
-
-        foreach($store in $myStores){
-            if($storesList -contains $store.Name){
-                $name = $store.Name
-                $path = $stores.$name.Path
-                $content = get-content -path $path
-                $object = $content | convertfrom-csv
-                
-                $csv = ($object + $store.Items) | convertto-csv
-                set-content -path $path -value $csv | out-null
-            }
-        }
-    }
-    [hashtable] GetFrom([hashtable]$fromSender){
-        $stores = $this.GetStores()
-        $storesList = $stores.keys
-        
-        $myStores = $fromSender.Stores
-
-        $dataTable = @{}
-        foreach($store in $myStores){
-            if($storesList -contains $store.Name){
-                $name = $store.Name
-                $path = $stores.$name.Path
-                $content = get-content -path $path
-                $object = $content | convertfrom-csv
-                $dataTable.Add("$name",$object)
-            }
-        }
-        return $dataTable
-    }
-}
