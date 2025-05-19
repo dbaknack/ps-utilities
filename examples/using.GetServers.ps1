@@ -14,7 +14,10 @@ GetServers
 
 # remove if needed
 RemoveServer  @{
-    Where = "Name"
-    Operator = "-like"
-    Property = "win16-vdi01"
+    Where       = "Name"
+    Operator    = "-like"
+    Property    = "win16-vdi01"
 }
+
+$sqlServers = GetServers | where-object {$_.Name -like "sql*"}
+$sqlServers
