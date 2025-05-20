@@ -4,7 +4,7 @@ Invoke-UDFSQLCommand @{
     Query           = "select * from sys.databases"
 }
 Invoke-UDFSQLCommand @{
-    InstanceName    = "SQL01\DEV01"
+    InstanceName    = "macbook"
     DatabaseName    = "master"
     Query           = "select * from sys.databases"
 }

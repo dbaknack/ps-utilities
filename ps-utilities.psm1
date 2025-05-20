@@ -326,16 +326,32 @@ function Invoke-UDFSQLCommand{
         $fromSender += @{Query = "select Test = cast(1 as bit)"}
     }
 
-    # will attempt to make the connection
+    if(($fromSender.ContainsKey("Username")) -and ($fromSender.ContainsKey("Password"))){
+        $authType = "SQL"
+    }else{
+        $authType = "Windows"
+    }
+
+    switch($authType){
+        "SQL"{
+            $sqlconnectionstring = "
+                server              =   $($fromSender.InstanceName);
+                database            =   $($fromSender.DatabaseName);
+                user id             =   $($fromSender.UserName);
+                password            =   $($fromSender.Password);
+                application name    =   $processname;
+            "
+        }
+        "Windows"{
+            $sqlconnectionstring    = "
+                server                          = $($fromSender.InstanceName);
+                database                        = $($fromSender.DatabaseName);
+                trusted_connection              = true;
+                application name                = $processname;"
+        }
+    }
+
     try{
-        $processname            = $fromSender.ProcessName
-        $myQuery                = "{0}" -f $fromSender.Query
-        $sqlconnectionstring    = "
-            server                          = $($fromSender.InstanceName);
-            database                        = $($fromSender.DatabaseName);
-            trusted_connection              = true;
-            application name                = $processname;"
-        # sql connection, setup call
         $sqlconnection                  = new-object system.data.sqlclient.sqlconnection
         $sqlconnection.connectionstring = $sqlconnectionstring
         $sqlconnection.open()
@@ -357,6 +373,7 @@ function Invoke-UDFSQLCommand{
     $sqlconnection.dispose()
     return $resultsreturned.Rows
 }
+
 function NewSessions{
 	throw "Not implemented yet"
 }

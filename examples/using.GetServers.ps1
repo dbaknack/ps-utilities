@@ -3,6 +3,7 @@ import-module ./ps-utilities
 # store references to servers
 StashServer @{
     Servers = @(
+        @{DomainName = "attlocal.net";Name = "alexhernand2c42"; IP = "192.168.1.183"}
         @{DomainName = "lab.com";Name ="sql01";IP = "10.0.0.165"}
         @{DomainName = "lab.com";Name ="sql02";IP = "10.0.0.169"}
         @{DomainName = "lab.com";Name ="win16-vdi01";IP = "10.0.0.168"}
