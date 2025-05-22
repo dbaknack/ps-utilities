@@ -4,7 +4,6 @@ $utilities = [setUp]::new(@{For = 'ps-utilities'})
 $utilities.NewStore(@{
     Stores = @(
         @{Name = 'Config'}
-       # @{Name = 'Test3'}
     )
 })
 

@@ -230,6 +230,7 @@ function Context{
                 Internal        = @{ Enabled = $false;  Color = "Magenta"   }
             }
         }
+        SQLConnections = $global:connections
         Stores = $script:utilities.GetStores()
         Message = @{
             Type        = "Informational"
@@ -305,63 +306,79 @@ function ConvertfromJsonToHashtable{
 function Invoke-UDFSQLCommand{
     param([hashtable]$fromSender)
 
-    # databasename is not required, but if not supplied, master will be default
+    if($null -eq $fromSender){
+        $fromSender = @{}
+    }
+
+    # default databasename
     if(-not($fromSender.ContainsKey('DatabaseName'))){
         $fromSender += @{DatabaseName = 'Master'}
     }
 
-    # processname is not required, but if not supplied, default will be used
+    # default processname
     if(-not($fromSender.ContainsKey('ProcessName'))){
-        $fromSender += @{ProcessName = 'Invoke-UDFSQLCommand2'}
+        $fromSender += @{ProcessName = 'Invoke-UDFSQLCommand'}
     }
+    $processname = $fromSender.ProcessName
+    # 
+    if(-not($fromSender.ContainsKey('TestConnection'))){
+        $fromSender.Add('TestConnection',$false)
+    }
+    $testConnection = $fromSender.TestConnection
 
-    # if testconnection is supplied a test connection will be made
-    if($fromSender.ContainsKey('TestConnection')){
-        $fromSender += @{TestConnection = $true}
-        
+    if($testConnection){
+        $query = "select [TestConnection] = 1 "
     }else{
-        $fromSender += @{TestConnection = $false}
-    }
-    if($fromSender.TestConnection){
-        $fromSender += @{Query = "select Test = cast(1 as bit)"}
+        $query = ("{0}" -f $fromSender.Query)
     }
 
+    # need username and password for sql auth
     if(($fromSender.ContainsKey("Username")) -and ($fromSender.ContainsKey("Password"))){
         $authType = "SQL"
     }else{
         $authType = "Windows"
     }
 
-    switch($authType){
+    # default databasename
+    if(-not($fromSender.ContainsKey('ConnectionTimeout'))){
+        $fromSender.Add("ConnectionTimeout",15)
+    }
+    $connectionTimeOut = $fromSender.ConnectionTimeout
+    $sqlconnectionstring = switch($authType){
         "SQL"{
-            $sqlconnectionstring = "
-                server              =   $($fromSender.InstanceName);
-                database            =   $($fromSender.DatabaseName);
-                user id             =   $($fromSender.UserName);
-                password            =   $($fromSender.Password);
-                application name    =   $processname;
+             "
+                server              = $($fromSender.InstanceName);
+                database            = $($fromSender.DatabaseName);
+                user id             = $($fromSender.UserName);
+                password            = $($fromSender.Password);
+                application name    = $processname;
+                connect timeout     = $($connectionTimeOut);
             "
         }
         "Windows"{
-            $sqlconnectionstring    = "
-                server                          = $($fromSender.InstanceName);
-                database                        = $($fromSender.DatabaseName);
-                trusted_connection              = true;
-                application name                = $processname;"
+            "
+                server              = $($fromSender.InstanceName);
+                database            = $($fromSender.DatabaseName);
+                trusted_connection  = true;
+                application name    = $processname;
+                connect timeout     = $($connectionTimeOut);
+            "
         }
     }
 
+    $sqlconnection                  = new-object system.data.sqlclient.sqlconnection
+    $sqlconnection.connectionstring = $sqlconnectionstring
+
     try{
-        $sqlconnection                  = new-object system.data.sqlclient.sqlconnection
-        $sqlconnection.connectionstring = $sqlconnectionstring
         $sqlconnection.open()
     }catch{
         return $Error[0]
     }
-
+    
     $sqlcommand                     = new-object system.data.sqlclient.sqlcommand
     $sqlcommand.connection          = $sqlconnection
-    $sqlcommand.commandtext         = $myQuery
+    $sqlcommand.commandtext         = $query
+
     # sql connection, handle returned results
     $sqladapter                     = new-object system.data.sqlclient.sqldataadapter
     $sqladapter.selectcommand       = $sqlcommand
@@ -373,8 +390,111 @@ function Invoke-UDFSQLCommand{
     $sqlconnection.dispose()
     return $resultsreturned.Rows
 }
+function NewSQLConnection{
+    param([hashtable]$fromSender)
 
+    if($null -eq $fromSender){
+        $fromSender = @{}
+    }
+
+    if(-not($fromSender.ContainsKey('Instances'))){
+        $fromSender.Add('Instances',@())
+    }  
+
+    $Instances = $fromSender.Instances
+    
+    $connectionPoolID = (((new-guid).guid) -split "-")[-1]
+    $connectionID = 0
+    if($null -eq ($global:connections)){
+        $global:connections = @()
+    }
+    foreach($instance in $Instances){
+        if(-not($instance.ContainsKey('HostName'))){
+            $instance.Add("HostName",$null)
+        }
+        $hostName = $instance.HostName
+
+        if(-not($instance.ContainsKey('InstanceName'))){
+            $instance.Add("InstanceName",'master')
+        }
+        $instanceName = $instance.InstanceName
+
+        if(-not($instance.ContainsKey('DatabaseName'))){
+            $instance.Add("DatabaseName",'Master')
+        }
+        $databaseName = $instance.DatabaseName
+
+        if(-not($instance.ContainsKey('ProcessName'))){
+            $instance.Add("ProcessName",("{0}-{1}-{2}"  -f "NewSQLConnection",$connectionPoolID,$connectionID))
+        }
+        $processName = ("{0}-{1}-{2}" -f $instance.ProcessName,$connectionPoolID,$connectionID)
+
+        if(-not($instance.ContainsKey('ConnectionTimeout'))){
+            $instance.Add("ConnectionTimeout",2)
+        }
+        $connectionTimeOut = $instance.ConnectionTimeout
+
+        if(($instance.ContainsKey("Username")) -and ($instance.ContainsKey("Password"))){
+            $authType = "SQL"
+        }else{
+            $authType = "Windows"
+        }
+
+        if($instance.ContainsKey("Port")){
+            $port = $instance.Port
+
+            if($null -ne $port){
+                $serverName = "{0},{1}" -f $instanceName,$port
+            }else{
+                $serverName = "{0}" -f $instanceName
+            }
+            
+        }else{
+            $serverName = $instanceName
+        }
+
+        $sqlconnectionstring = switch($authType){
+            "SQL"{
+                 "
+                    server              = $($serverName);
+                    database            = $($databaseName);
+                    user id             = $($instance.UserName);
+                    password            = $($instance.Password);
+                    application name    = $processname;
+                    connect timeout     = $($connectionTimeOut);
+                "
+            }
+            "Windows"{
+                "
+                    server              = $($serverName);
+                    database            = $($databaseName);
+                    trusted_connection  = true;
+                    application name    = $processname;
+                    connect timeout     = $($connectionTimeOut);
+                "
+            }
+        }
+
+        $sqlconnection = new-object system.data.sqlclient.sqlconnection
+        $sqlconnection.connectionstring = $sqlconnectionstring
+        $sqlconnection.open()
+        $global:connections += $sqlconnection | select-object @(
+            @{Name = "HostName";Expression = {$hostName}}
+            @{Name = "InstanceName";Expression = {$instanceName}}
+            "Database"
+            "State"
+            "ClientConnectionId"
+            @{Name = "Port";Expression = {$port}}
+            @{Name = "ProcessName";Expression = {$processName}},
+            @{Name = "ConnectionObject";Expression = {$sqlconnection}}
+        )
+        $connectionID  =   $global:connectionID  + 1
+    }
+    (Context).SQLConnections += $connections
+}
+function GetSQLConnection{
+    return (Context).SQLConnections
+}
 function NewSessions{
 	throw "Not implemented yet"
 }
-
