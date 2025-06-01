@@ -1,0 +1,48 @@
+{
+    "Preferences" :{
+        "Warning": {
+            "Color": "Yellow",
+            "Enabled": true
+        },
+        "Informational": {
+            "Color": "Cyan",
+            "Enabled": true
+        },
+        "ErrorAction": "Stop",
+        "Development": {
+            "Color": "Magenta",
+            "Enabled": false
+        },
+        "Messages": {
+            "Enabled": true
+        },
+        "User": {
+            "Color": "Cyan",
+            "Enabled": true
+        },
+        "Success": {
+            "Color": "Green",
+            "Enabled": true
+        },
+        "Test": {
+            "Color": "Yellow",
+            "Enabled": false
+        },
+        "Internal": {
+            "Color": "Magenta",
+            "Enabled": false
+        }
+    },
+    "Functions" :{
+        "Message" : {
+            "default" : {
+                "Type" : "Informational",
+                "From" : "NameNotFrovided",
+                "DateTime" : {
+                    "format": "yyyy-MM-dd HH:mm:ss.fff"
+                },
+                "Text" : "no-message"
+            }
+        }
+    }
+}

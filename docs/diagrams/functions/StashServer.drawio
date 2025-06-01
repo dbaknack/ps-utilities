@@ -1,0 +1,19 @@
+<mxfile host="65bd71144e">
+    <diagram id="GZ-sJ-vWQoU-v0HPQqXk" name="Page-1">
+        <mxGraphModel dx="1145" dy="673" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="6" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="4">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="&lt;div style=&quot;font-family: &amp;quot;FiraCode Nerd Font&amp;quot;, Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; font-weight: normal; font-size: 12px; line-height: 18px; white-space: pre;&quot;&gt;&lt;div style=&quot;&quot;&gt;&lt;span&gt;&lt;font style=&quot;color: light-dark(rgb(255, 209, 115), rgb(255, 0, 255));&quot;&gt;StashServer&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="110" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="&lt;div style=&quot;font-family: &amp;quot;FiraCode Nerd Font&amp;quot;, Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; text-align: left; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 0, 255));&quot;&gt;&lt;span&gt;    $&lt;/span&gt;&lt;span&gt;script&lt;/span&gt;&lt;span&gt;:utilities.NewStore(&lt;/span&gt;&lt;span&gt;@&lt;/span&gt;&lt;span&gt;{&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;font-family: &amp;quot;FiraCode Nerd Font&amp;quot;, Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; text-align: left; white-space: pre;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 0, 255));&quot;&gt;&lt;span&gt;        Stores &lt;/span&gt;&lt;span&gt;=&lt;/span&gt;&lt;span&gt; &lt;/span&gt;&lt;span&gt;@&lt;/span&gt;&lt;span&gt;(&lt;/span&gt;&lt;span&gt;@&lt;/span&gt;&lt;span&gt;{Name &lt;/span&gt;&lt;span&gt;=&lt;/span&gt;&lt;span&gt; $store})&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;font-family: &amp;quot;FiraCode Nerd Font&amp;quot;, Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; text-align: left; white-space: pre;&quot;&gt;&lt;span&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 0, 255));&quot;&gt;    })&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="70" y="220" width="300" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
