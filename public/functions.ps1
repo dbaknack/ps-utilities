@@ -687,16 +687,32 @@ function FromStore{
 function NewStore{
     param([hashtable]$fromSender)
 
+    $ErrorActionPreference = (PSUtilConfig).Preferences.ErrorAction
+
+
     $myHome = (_UtilityVars).Home
     $in = $fromSender.In
     $stores = $fromSender.Stores
     $storesPath = join-path $myHome (join-path $in 'Stores')
+
     foreach($store in $stores){
         $name = $store.Name
+
+        # is a schema being referenced?
         if($store.ContainsKey('UseSchema')){
             $useSchema = $true
+            Message2 @{
+                Type = "Informational"
+                From = ($MyInvocation.MyCommand.name)
+                Text = "referencing a schema"
+            }
         }else{
             $useSchema = $false
+            Message2 @{
+                Type = "Informational"
+                From = ($MyInvocation.MyCommand.name)
+                Text = "not referencing a schema"
+            }
         }
 
         if($useSchema){
@@ -707,19 +723,22 @@ function NewStore{
                 Name = $from
             }
 
+            # does the schema being referenced exist?
             if($fromSchemas.ContainsKey($schemaName)){
                 Message2 @{
-                    Type = "Informational"
+                    Type = "success"
                     From = ($MyInvocation.MyCommand.name)
-                    Text = "schema '{0}' being referenced for store '{1}'" -f $schemaName, $name
+                    Text = "schema '{0}' being referenced for store '{1}' exist" -f $schemaName, $name
                 }
+
                 if(-not($fromSchemas.$schemaName.ContainsKey("LinkedStores"))){
                     $fromSchemas.$schemaName.Add("LinkedStores",@())
                 }
-                $linkedStored = $fromSchemas.$schemaName.LinkedStores
+                $linkedStored = @($fromSchemas.$schemaName.LinkedStores)
 
                 if($linkedStored -notcontains (join-path  $storesPath $name)){
-                    $fromSchemas.$schemaName.LinkedStores += (join-path  $storesPath $name)
+                    $linkedStored += (join-path  $storesPath $name)
+                    $fromSchemas.$schemaName.LinkedStores =  $linkedStored
 
                     Message2 @{
                         Type = "Informational"
@@ -734,36 +753,47 @@ function NewStore{
                         Text = "schema '{0}' cannot be deleted now" -f $schemaName
                     }
                     $fromSchemas.$schemaName.CanBeDeleted =  $false
-
-                   $schemajson =  $fromSchemas | convertto-json -depth 4
-                   $path = join-path (join-path $myHome (join-path $in 'Schemas')) $from
-
-                    Message2 @{
-                        Type = "Informational"
-                        From = ($MyInvocation.MyCommand.name)
-                        Text = "schema '{0}' updated" -f $path
-                    }
-                    set-content -path $path -value $schemajson | out-null
                 }
+            }else{
+                $msg = ("the schema being referenced: '{)}', does not exist") -f $schemaName
+                write-error $msg
             }
+
+            $schemajson =  $fromSchemas | convertto-json -depth 4
+            $path = join-path (join-path $myHome (join-path $in 'Schemas')) $from
+    
+             Message2 @{
+                 Type = "Informational"
+                 From = ($MyInvocation.MyCommand.name)
+                 Text = "schema '{0}' updated" -f $path
+             }
+             set-content -path $path -value $schemajson | out-null
+
         }else{
             Message2 @{
-                Type = "Informational"
+                Type = "warning"
                 From = ($MyInvocation.MyCommand.name)
                 Text = "store '{0}' is being created without being linked to a schema" -f $sche
             }
         }
 
+
+
+        # path to store file
         $path = join-path $storesPath $name
         if(-not(Test-Path -path $path)){
 
-            Message2 @{
-                Type = "Informational"
-                From = ($MyInvocation.MyCommand.name)
-                Text = "creating store '{0}' in '{1}" -f $name, $in
+            try{
+                new-item -path $path -itemType 'File' | out-null
+                Message2 @{
+                    Type = "success"
+                    From = ($MyInvocation.MyCommand.name)
+                    Text = "store '{0}' in '{1} created successfully" -f $name, $path
+                }
+            }catch{
+                return $error[0]
             }
-
-            new-item -path $path -itemType 'File' | out-null
+            
         }else{
             Message2 @{
                 Type = "Informational"
@@ -771,6 +801,36 @@ function NewStore{
                 Text = "store '{0}' already exists in '{1}" -f $name, $in
             }
         }
+    }
+}
+function RemoveStore{
+    param([hashtable]$fromSender)
+
+    $myHome = (_UtilityVars).Home
+    $for = $fromSender.For
+    $stores = $fromSender.Stores
+    $storesPath = join-path $myHome (join-path $for 'Stores')
+
+    foreach($store in $stores){
+        $name = $store.Name
+        $path = join-path $storesPath $name
+        $path = $path
+
+        $checks = @{
+            fileExists = $false
+            hasSchemaReference = $false
+        }
+        # if the stores exists
+        if(Test-Path -path $path){
+            $checks.fileExists = $true
+           # Remove-item -path $path | out-null
+        }
+
+        # if theres a schema directory look in it
+        if(test-path (join-path $myHome (join-path $for 'Schemas'))){
+            (GetSchemas @{In = $for; Name = $schema_file})
+        }
+        $path
     }
 }
 # schema creation and management functions

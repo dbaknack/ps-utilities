@@ -95,3 +95,57 @@ InsertToStore @{
         [pscustomobject]@{}
     )
 }
+
+GetStores @{In ='ps-utilities'}
+
+NewStore @{
+    In = "ps-utilities"
+    Stores = @(
+        @{
+            Name = "servers-dev"
+            UseSchema = @{
+                From = "Schemas.json"
+                Name = "Servers"}
+        }
+    )
+}
+
+
+# define variables
+$in = "ps-utilities"
+$for = "ps-utilities"
+$schema_file = "schemas.json"
+$schema_name = "Servers"
+$store_servers_prd = @{
+    Name = "servers-tst"
+    UseSchema = @{
+        From = $schema_file
+        Name = $schema_name
+    }
+}
+
+# create store
+NewStore @{In = $in; Stores = @($store_servers_prd)}
+
+# view store
+GetStores @{In = $in}
+
+$schema = (GetSchemas @{In = $in; Name = $schema_file}).$schema_name
+$schema.properties
+$schema.Index
+$schema.CanBeDeleted
+$schema.LinkedStores
+
+
+PSUtilConfig
+
+$fromSender = @{
+    For = "ps-utilities"
+    UseSchema = @{
+        From = "schemas.json"
+        Name = "Servers"
+    }
+    Stores = @(
+        @{Name = $store_servers_prd.Name}
+    )
+}
