@@ -44,5 +44,9 @@
                 "Text" : "no-message"
             }
         }
+    },
+    "Logging" : {
+        "Enabled" : false,
+        "Path" : "ps-utilities.log"
     }
 }
