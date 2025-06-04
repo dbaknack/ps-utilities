@@ -227,18 +227,18 @@ function ConvertObjectJsontoHashtable{
     param($object)
 
     $hashTable = @{}
-    if(($object.gettype()).name -eq 'pscustomobject'){
-        foreach($property in $object.psobject.properties){
-            if($null -eq $property.value){
-                $hashTable[$property.name] = ConvertObjectJsontoHashtable -object ""    
-            }else{
+    if (($object.GetType()).Name -eq 'pscustomobject') {
+        foreach ($property in $object.psobject.properties) {
+            if ($null -eq $property.value) {
+                $hashTable[$property.name] = ConvertObjectJsontoHashtable -object ""
+            } else {
                 $hashTable[$property.name] = ConvertObjectJsontoHashtable -object $property.value
             }
         }
-    }else{
+    } else {
         return $object
     }
-    return  $hashtable
+    return $hashTable
 }
 function ConvertfromJsonToHashtable{
     param([hashtable]$fromSender)
@@ -248,14 +248,20 @@ function ConvertfromJsonToHashtable{
     }
     $path = $fromSender.Path
 
-    try{
-        $content = get-content -path $path -ErrorAction Stop
-    }catch{
-
+    $content = $null
+    try {
+        if (Test-Path -Path $path) {
+            $content = Get-Content -Path $path -ErrorAction Stop
+        }
+    } catch {
+        $content = $null
     }
 
+    if (-not $content) {
+        return @{}
+    }
 
-    $jsonObj = ($content | convertfrom-json)
+    $jsonObj = ($content | ConvertFrom-Json)
 
     return ConvertObjectJsontoHashtable $jsonObj
 }
