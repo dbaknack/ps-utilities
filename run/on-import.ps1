@@ -1,5 +1,5 @@
-write-host "running on-import.ps1"
-clear-host
+Write-Host "running on-import.ps1"
+Clear-Host
 # read in configuration 
 _ReadConfig
 
@@ -8,11 +8,11 @@ _ReadConfig
 (PSUtilConfig).Preferences.Internal.Enabled = $true
 
 
-Write-host "Module Name: ps-utilities" -fore "magenta"
-Write-host "Version: 1.0.3" -fore "magenta"
-Write-host ""
-Write-host "initializing.." -fore "magenta"
-write-host ""
+Write-Host "Module Name: ps-utilities" -ForegroundColor "Magenta"
+Write-Host "Version: 1.0.3" -ForegroundColor "Magenta"
+Write-Host ""
+Write-Host "initializing.." -ForegroundColor "Magenta"
+Write-Host ""
 
 Message2 @{
     Type = "Internal"

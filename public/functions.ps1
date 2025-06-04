@@ -1,16 +1,20 @@
-write-host "running public/functions.ps1"
-function GetServers{
-    $store = "Servers"
+Write-Host "running public/functions.ps1"
+
+# Retrieves all entries from the Servers store
+function GetServers {
+    $store = 'Servers'
     return (
         _GetFromStore @{
-        For = 'ps-utilities'
+            For    = 'ps-utilities'
             Stores = @(
-                @{Name = $store}
+                @{ Name = $store }
             )
         }
     ).Servers
 }
-function RemoveServer{
+
+# Removes entries from the Servers store matching the provided criteria
+function RemoveServer {
     param([hashtable]$fromSender)
 
     $where = $fromSender.where
@@ -32,10 +36,12 @@ function RemoveServer{
         $new = $data
     }
     
-    $csv = $new | convertto-csv
-    set-content -path $path  -value $csv | out-null
+    $csv = $new | ConvertTo-Csv
+    Set-Content -Path $path -Value $csv | Out-Null
 }
-function StashServer{
+
+# Adds new server objects to the Servers store if they do not already exist
+function StashServer {
     param([hashtable]$fromSender)
  
     # create the store if it does not exist
