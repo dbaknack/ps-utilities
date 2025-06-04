@@ -212,13 +212,28 @@ function Message2{
         }
 
         if(($preferences.($message.Type).Enabled)){
-            write-host ("[+] [{0}]::[{1}]::[{2}]::[{3}]::[{4}]" -f @(
-                $message.Type
-                $message.DateTime
-                $message.From
-                $message.UserName
+            $logEntry = "[+] [{0}]::[{1}]::[{2}]::[{3}]::[{4}]" -f @(
+                $message.Type,
+                $message.DateTime,
+                $message.From,
+                $message.UserName,
                 $message.Text
-            )) -fore $preferences.($message.Type).color
+            )
+
+            write-host $logEntry -fore $preferences.($message.Type).color
+
+            $logging = (PSUtilConfig).Logging
+            if($null -ne $logging -and $logging.Enabled){
+                $logPath = $logging.Path
+                if(-not [System.IO.Path]::IsPathRooted($logPath)){
+                    $logPath = Join-Path $HOME $logPath
+                }
+                $logDir = Split-Path -Path $logPath -Parent
+                if(-not (Test-Path -Path $logDir)){
+                    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+                }
+                Add-Content -Path $logPath -Value $logEntry
+            }
         }
     }
 
