@@ -1,16 +1,20 @@
-write-host "running public/functions.ps1"
-function GetServers{
-    $store = "Servers"
+Write-Host "running public/functions.ps1"
+
+# Retrieves all entries from the Servers store
+function GetServers {
+    $store = 'Servers'
     return (
         _GetFromStore @{
-        For = 'ps-utilities'
+            For    = 'ps-utilities'
             Stores = @(
-                @{Name = $store}
+                @{ Name = $store }
             )
         }
     ).Servers
 }
-function RemoveServer{
+
+# Removes entries from the Servers store matching the provided criteria
+function RemoveServer {
     param([hashtable]$fromSender)
 
     $where = $fromSender.where
@@ -32,10 +36,12 @@ function RemoveServer{
         $new = $data
     }
     
-    $csv = $new | convertto-csv
-    set-content -path $path  -value $csv | out-null
+    $csv = $new | ConvertTo-Csv
+    Set-Content -Path $path -Value $csv | Out-Null
 }
-function StashServer{
+
+# Adds new server objects to the Servers store if they do not already exist
+function StashServer {
     param([hashtable]$fromSender)
  
     # create the store if it does not exist
@@ -212,13 +218,28 @@ function Message2{
         }
 
         if(($preferences.($message.Type).Enabled)){
-            write-host ("[+] [{0}]::[{1}]::[{2}]::[{3}]::[{4}]" -f @(
-                $message.Type
-                $message.DateTime
-                $message.From
-                $message.UserName
+            $logEntry = "[+] [{0}]::[{1}]::[{2}]::[{3}]::[{4}]" -f @(
+                $message.Type,
+                $message.DateTime,
+                $message.From,
+                $message.UserName,
                 $message.Text
-            )) -fore $preferences.($message.Type).color
+            )
+
+            write-host $logEntry -fore $preferences.($message.Type).color
+
+            $logging = (PSUtilConfig).Logging
+            if($null -ne $logging -and $logging.Enabled){
+                $logPath = $logging.Path
+                if(-not [System.IO.Path]::IsPathRooted($logPath)){
+                    $logPath = Join-Path $HOME $logPath
+                }
+                $logDir = Split-Path -Path $logPath -Parent
+                if(-not (Test-Path -Path $logDir)){
+                    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+                }
+                Add-Content -Path $logPath -Value $logEntry
+            }
         }
     }
 
@@ -227,18 +248,18 @@ function ConvertObjectJsontoHashtable{
     param($object)
 
     $hashTable = @{}
-    if(($object.gettype()).name -eq 'pscustomobject'){
-        foreach($property in $object.psobject.properties){
-            if($null -eq $property.value){
-                $hashTable[$property.name] = ConvertObjectJsontoHashtable -object ""    
-            }else{
+    if (($object.GetType()).Name -eq 'pscustomobject') {
+        foreach ($property in $object.psobject.properties) {
+            if ($null -eq $property.value) {
+                $hashTable[$property.name] = ConvertObjectJsontoHashtable -object ""
+            } else {
                 $hashTable[$property.name] = ConvertObjectJsontoHashtable -object $property.value
             }
         }
-    }else{
+    } else {
         return $object
     }
-    return  $hashtable
+    return $hashTable
 }
 function ConvertfromJsonToHashtable{
     param([hashtable]$fromSender)
@@ -248,14 +269,20 @@ function ConvertfromJsonToHashtable{
     }
     $path = $fromSender.Path
 
-    try{
-        $content = get-content -path $path -ErrorAction Stop
-    }catch{
-
+    $content = $null
+    try {
+        if (Test-Path -Path $path) {
+            $content = Get-Content -Path $path -ErrorAction Stop
+        }
+    } catch {
+        $content = $null
     }
 
+    if (-not $content) {
+        return @{}
+    }
 
-    $jsonObj = ($content | convertfrom-json)
+    $jsonObj = ($content | ConvertFrom-Json)
 
     return ConvertObjectJsontoHashtable $jsonObj
 }
